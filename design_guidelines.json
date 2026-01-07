@@ -1,0 +1,149 @@
+{
+  "identity": {
+    "name": "JiraSync Pro",
+    "persona": "E1 - The Anti-AI Designer",
+    "tone": "Technical, Precise, Reliable, Swiss-Style",
+    "archetype": "Swiss & High-Contrast"
+  },
+  "typography": {
+    "headings": {
+      "family": "Chivo, sans-serif",
+      "weights": ["700", "900"],
+      "usage": "Page titles, Section headers, Metric values",
+      "letterSpacing": "tracking-tight"
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "General text, form labels, descriptions"
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "weights": ["400"],
+      "usage": "Logs, IDs, JSON data, Status codes"
+    }
+  },
+  "colors": {
+    "mode": "dark",
+    "palette": {
+      "background": "#09090B",
+      "foreground": "#FAFAFA",
+      "card": "#18181B",
+      "card_foreground": "#FAFAFA",
+      "primary": "#2563EB",
+      "primary_foreground": "#FFFFFF",
+      "secondary": "#27272A",
+      "secondary_foreground": "#FAFAFA",
+      "muted": "#27272A",
+      "muted_foreground": "#A1A1AA",
+      "accent": "#27272A",
+      "accent_foreground": "#FAFAFA",
+      "destructive": "#EF4444",
+      "destructive_foreground": "#FAFAFA",
+      "border": "#27272A",
+      "input": "#27272A",
+      "ring": "#2563EB"
+    },
+    "status": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "info": "#3B82F6"
+    }
+  },
+  "visual_enhancers": {
+    "borders": "1px solid #27272A",
+    "radius": "0.5rem",
+    "shadows": {
+      "card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      "glow": "0 0 20px -5px rgba(37, 99, 235, 0.3)"
+    },
+    "textures": "Subtle noise overlay on background (opacity 0.03)",
+    "glassmorphism": "backdrop-blur-xl bg-black/40 border-white/10"
+  },
+  "layout_strategies": {
+    "dashboard": {
+      "type": "Control Room Grid",
+      "grid": "grid-cols-1 md:grid-cols-4 gap-4",
+      "widgets": [
+        { "name": "Sync Status", "span": "col-span-1" },
+        { "name": "Total Issues", "span": "col-span-1" },
+        { "name": "Error Rate", "span": "col-span-1" },
+        { "name": "Next Sync", "span": "col-span-1" },
+        { "name": "Recent Activity Chart", "span": "col-span-2 row-span-2" },
+        { "name": "Live Logs", "span": "col-span-2 row-span-2" }
+      ]
+    },
+    "mapping_page": {
+      "type": "Split Pane",
+      "structure": "Two distinct columns (Cloud vs On-Prem) with a central 'Action' gutter for mapping controls."
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md font-medium transition-all active:scale-95",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2 rounded-md font-medium",
+      "ghost": "hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 rounded-md"
+    },
+    "cards": {
+      "base": "bg-card text-card-foreground rounded-lg border border-border shadow-sm p-6",
+      "hover": "hover:border-primary/50 transition-colors duration-300"
+    },
+    "inputs": {
+      "base": "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    },
+    "tables": {
+      "wrapper": "relative w-full overflow-auto rounded-md border",
+      "header": "bg-muted/50 font-medium text-muted-foreground",
+      "row": "hover:bg-muted/50 transition-colors border-b border-border last:border-0"
+    }
+  },
+  "image_urls": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1633174074875-f09b1b53ecf6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwzfHxzZXJ2ZXIlMjBjbG91ZCUyMGNvbm5lY3Rpb24lMjBhYnN0cmFjdHxlbnwwfHx8fDE3Njc4MTk2MTF8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Dark room with blue light, abstract server/tech vibe",
+      "usage": "Login page split-screen background"
+    }
+  },
+  "icons": {
+    "library": "lucide-react",
+    "preferred": ["Activity", "Server", "Cloud", "ArrowRightLeft", "Settings", "ShieldCheck", "AlertTriangle", "CheckCircle2", "XCircle"]
+  },
+  "motion": {
+    "page_transition": "initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}",
+    "hover_lift": "whileHover={{ y: -2 }} transition={{ duration: 0.2 }}",
+    "list_stagger": "variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } }}"
+  },
+  "instructions_to_main_agent": [
+    "Use 'Chivo' font for all headings. Import it from Google Fonts.",
+    "Use 'JetBrains Mono' for all logs, IDs, and technical data.",
+    "Implement the 'Control Room' grid for the Dashboard.",
+    "Use the provided Unsplash image for the Login page background.",
+    "Ensure all interactive elements have 'data-testid' attributes.",
+    "Use 'sonner' for all toast notifications.",
+    "Do not use gradients for backgrounds; use solid colors with subtle noise or borders.",
+    "For the Mapping page, create a visual connection between the two columns (Cloud vs On-Prem).",
+    "Strictly follow the color palette defined above.",
+    "Use 'lucide-react' for icons."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use sonner for toasts"
+  ]
+}
