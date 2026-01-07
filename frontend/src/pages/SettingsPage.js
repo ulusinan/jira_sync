@@ -315,13 +315,18 @@ export default function SettingsPage() {
                     {testResults.onprem_error.includes('403') || testResults.onprem_error.includes('Forbidden') ? (
                       <li>Kullanıcının API erişim yetkisi yok</li>
                     ) : null}
-                    {testResults.onprem_error.includes('timeout') || testResults.onprem_error.includes('Timeout') ? (
-                      <li>Sunucuya bağlantı zaman aşımına uğradı - ağ bağlantısını kontrol edin</li>
+                    {testResults.onprem_error.includes('zaman aşımı') || testResults.onprem_error.includes('Timeout') || testResults.onprem_error.includes('timeout') ? (
+                      <>
+                        <li className="text-amber-400 font-medium">Bu uygulama cloud ortamında çalışıyor</li>
+                        <li>Jira sunucunuz sadece şirket içi ağda (internal) ise buradan erişilemez</li>
+                        <li>Browser'dan erişebilmeniz VPN/internal ağ üzerinden olabilir</li>
+                        <li>Çözüm: Jira'yı internete açın veya uygulamayı kendi sunucunuzda çalıştırın</li>
+                      </>
                     ) : null}
                     {testResults.onprem_error.includes('SSL') || testResults.onprem_error.includes('certificate') ? (
                       <li>SSL sertifika sorunu - self-signed sertifika olabilir</li>
                     ) : null}
-                    {!testResults.onprem_error.includes('401') && !testResults.onprem_error.includes('403') && !testResults.onprem_error.includes('timeout') && !testResults.onprem_error.includes('getaddrinfo') && !testResults.onprem_error.includes('Connection refused') ? (
+                    {!testResults.onprem_error.includes('401') && !testResults.onprem_error.includes('403') && !testResults.onprem_error.includes('timeout') && !testResults.onprem_error.includes('zaman aşımı') && !testResults.onprem_error.includes('getaddrinfo') && !testResults.onprem_error.includes('Connection refused') ? (
                       <>
                         <li>URL formatını kontrol edin (https://jira.sirket.com)</li>
                         <li>VPN bağlantısı gerekebilir</li>
