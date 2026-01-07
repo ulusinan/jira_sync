@@ -194,12 +194,24 @@ async def fetch_cloud_projects(settings: dict) -> List[dict]:
                     "Accept": "application/json"
                 }
             )
+            if response.status_code == 401:
+                raise Exception("401 Unauthorized - E-posta veya API Token hatalı")
+            if response.status_code == 403:
+                raise Exception("403 Forbidden - API Token'ın proje listeleme yetkisi yok")
+            if response.status_code == 404:
+                raise Exception("404 Not Found - URL adresi hatalı veya API endpoint bulunamadı")
             response.raise_for_status()
             projects = response.json()
             return [{"key": p["key"], "name": p["name"]} for p in projects]
+    except httpx.ConnectError as e:
+        raise Exception(f"Bağlantı hatası - Sunucuya erişilemiyor: {str(e)}")
+    except httpx.TimeoutException:
+        raise Exception("Zaman aşımı - Sunucu yanıt vermedi (30 saniye)")
+    except httpx.HTTPStatusError as e:
+        raise Exception(f"HTTP Hatası {e.response.status_code}: {e.response.text[:200]}")
     except Exception as e:
         logger.error(f"Error fetching cloud projects: {e}")
-        raise HTTPException(status_code=500, detail=f"Cloud connection error: {str(e)}")
+        raise
 
 async def fetch_onprem_projects(settings: dict) -> List[dict]:
     """Fetch projects from Jira On-Premise"""
@@ -215,12 +227,29 @@ async def fetch_onprem_projects(settings: dict) -> List[dict]:
                     "Accept": "application/json"
                 }
             )
+            if response.status_code == 401:
+                raise Exception("401 Unauthorized - Kullanıcı adı veya şifre hatalı")
+            if response.status_code == 403:
+                raise Exception("403 Forbidden - Kullanıcının API erişim yetkisi yok")
+            if response.status_code == 404:
+                raise Exception("404 Not Found - URL adresi hatalı veya Jira REST API aktif değil")
             response.raise_for_status()
             projects = response.json()
             return [{"key": p["key"], "name": p["name"]} for p in projects]
+    except httpx.ConnectError as e:
+        error_msg = str(e)
+        if "Connection refused" in error_msg:
+            raise Exception("Bağlantı reddedildi - Sunucu portu kapalı veya firewall engelliyor")
+        elif "getaddrinfo" in error_msg or "Name or service not known" in error_msg:
+            raise Exception("DNS çözümlenemedi - URL adresi hatalı veya sunucu bulunamıyor")
+        raise Exception(f"Bağlantı hatası: {error_msg}")
+    except httpx.TimeoutException:
+        raise Exception("Zaman aşımı - Sunucu 30 saniye içinde yanıt vermedi")
+    except httpx.HTTPStatusError as e:
+        raise Exception(f"HTTP Hatası {e.response.status_code}: {e.response.text[:200]}")
     except Exception as e:
         logger.error(f"Error fetching on-prem projects: {e}")
-        raise HTTPException(status_code=500, detail=f"On-Premise connection error: {str(e)}")
+        raise
 
 async def fetch_cloud_issue_types(settings: dict) -> List[dict]:
     """Fetch issue types from Jira Cloud"""
