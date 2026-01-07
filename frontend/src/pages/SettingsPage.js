@@ -188,11 +188,48 @@ export default function SettingsPage() {
         </div>
 
         {testResults && (
-          <div className={`mt-4 p-3 rounded-lg flex items-center gap-2 ${testResults.cloud ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive'}`}>
-            {testResults.cloud ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-            <span className="text-sm">
-              {testResults.cloud ? 'Cloud bağlantısı başarılı' : `Cloud bağlantı hatası: ${testResults.cloud_error}`}
-            </span>
+          <div className={`mt-4 p-4 rounded-lg border ${testResults.cloud ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-destructive/10 border-destructive/30'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              {testResults.cloud ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-destructive" />}
+              <span className={`font-medium ${testResults.cloud ? 'text-emerald-500' : 'text-destructive'}`}>
+                {testResults.cloud ? 'Cloud Bağlantısı Başarılı' : 'Cloud Bağlantı Hatası'}
+              </span>
+            </div>
+            {!testResults.cloud && testResults.cloud_error && (
+              <div className="mt-2 p-3 bg-background/50 rounded border border-border">
+                <p className="text-xs text-muted-foreground mb-1 font-medium">Hata Detayı:</p>
+                <p className="text-sm text-destructive font-mono break-all">{testResults.cloud_error}</p>
+                <div className="mt-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium">Olası Sebepler:</p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    {testResults.cloud_error.includes('getaddrinfo') || testResults.cloud_error.includes('Name or service not known') ? (
+                      <li>URL adresi hatalı veya erişilemiyor</li>
+                    ) : null}
+                    {testResults.cloud_error.includes('401') || testResults.cloud_error.includes('Unauthorized') ? (
+                      <>
+                        <li>E-posta adresi hatalı</li>
+                        <li>API Token geçersiz veya süresi dolmuş</li>
+                      </>
+                    ) : null}
+                    {testResults.cloud_error.includes('403') || testResults.cloud_error.includes('Forbidden') ? (
+                      <li>API Token'ın yetkileri yetersiz</li>
+                    ) : null}
+                    {testResults.cloud_error.includes('timeout') || testResults.cloud_error.includes('Timeout') ? (
+                      <li>Sunucuya bağlantı zaman aşımına uğradı</li>
+                    ) : null}
+                    {testResults.cloud_error.includes('SSL') || testResults.cloud_error.includes('certificate') ? (
+                      <li>SSL sertifika sorunu</li>
+                    ) : null}
+                    {!testResults.cloud_error.includes('401') && !testResults.cloud_error.includes('403') && !testResults.cloud_error.includes('timeout') && !testResults.cloud_error.includes('getaddrinfo') ? (
+                      <>
+                        <li>URL formatını kontrol edin (https://domain.atlassian.net)</li>
+                        <li>API Token'ı yeniden oluşturmayı deneyin</li>
+                      </>
+                    ) : null}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -249,11 +286,52 @@ export default function SettingsPage() {
         </div>
 
         {testResults && (
-          <div className={`mt-4 p-3 rounded-lg flex items-center gap-2 ${testResults.onprem ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive'}`}>
-            {testResults.onprem ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-            <span className="text-sm">
-              {testResults.onprem ? 'On-Premise bağlantısı başarılı' : `On-Premise bağlantı hatası: ${testResults.onprem_error}`}
-            </span>
+          <div className={`mt-4 p-4 rounded-lg border ${testResults.onprem ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-destructive/10 border-destructive/30'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              {testResults.onprem ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-destructive" />}
+              <span className={`font-medium ${testResults.onprem ? 'text-emerald-500' : 'text-destructive'}`}>
+                {testResults.onprem ? 'On-Premise Bağlantısı Başarılı' : 'On-Premise Bağlantı Hatası'}
+              </span>
+            </div>
+            {!testResults.onprem && testResults.onprem_error && (
+              <div className="mt-2 p-3 bg-background/50 rounded border border-border">
+                <p className="text-xs text-muted-foreground mb-1 font-medium">Hata Detayı:</p>
+                <p className="text-sm text-destructive font-mono break-all">{testResults.onprem_error}</p>
+                <div className="mt-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium">Olası Sebepler:</p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    {testResults.onprem_error.includes('getaddrinfo') || testResults.onprem_error.includes('Name or service not known') ? (
+                      <li>URL adresi hatalı veya sunucuya erişilemiyor</li>
+                    ) : null}
+                    {testResults.onprem_error.includes('Connection refused') ? (
+                      <li>Sunucu bağlantıyı reddetti - port veya firewall kontrolü yapın</li>
+                    ) : null}
+                    {testResults.onprem_error.includes('401') || testResults.onprem_error.includes('Unauthorized') ? (
+                      <>
+                        <li>Kullanıcı adı hatalı</li>
+                        <li>Şifre hatalı</li>
+                      </>
+                    ) : null}
+                    {testResults.onprem_error.includes('403') || testResults.onprem_error.includes('Forbidden') ? (
+                      <li>Kullanıcının API erişim yetkisi yok</li>
+                    ) : null}
+                    {testResults.onprem_error.includes('timeout') || testResults.onprem_error.includes('Timeout') ? (
+                      <li>Sunucuya bağlantı zaman aşımına uğradı - ağ bağlantısını kontrol edin</li>
+                    ) : null}
+                    {testResults.onprem_error.includes('SSL') || testResults.onprem_error.includes('certificate') ? (
+                      <li>SSL sertifika sorunu - self-signed sertifika olabilir</li>
+                    ) : null}
+                    {!testResults.onprem_error.includes('401') && !testResults.onprem_error.includes('403') && !testResults.onprem_error.includes('timeout') && !testResults.onprem_error.includes('getaddrinfo') && !testResults.onprem_error.includes('Connection refused') ? (
+                      <>
+                        <li>URL formatını kontrol edin (https://jira.sirket.com)</li>
+                        <li>VPN bağlantısı gerekebilir</li>
+                        <li>Jira sunucusunun çalıştığından emin olun</li>
+                      </>
+                    ) : null}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
