@@ -95,10 +95,15 @@ export default function SettingsPage() {
       if (response.data.cloud && response.data.onprem) {
         toast.success('Her iki bağlantı da başarılı!');
       } else {
-        toast.error('Bazı bağlantılar başarısız');
+        const errors = [];
+        if (!response.data.cloud) errors.push('Jira Cloud');
+        if (!response.data.onprem) errors.push('Jira On-Premise');
+        toast.error(`Bağlantı hatası: ${errors.join(' ve ')}`);
       }
     } catch (error) {
-      toast.error('Bağlantı testi başarısız');
+      const errorMsg = error.response?.data?.detail || 'Bağlantı testi başarısız. Önce ayarları kaydedin.';
+      toast.error(errorMsg);
+      setTestResults({ cloud: false, onprem: false, cloud_error: errorMsg, onprem_error: errorMsg });
     } finally {
       setTesting(false);
     }
