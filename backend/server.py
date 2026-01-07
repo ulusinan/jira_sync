@@ -215,13 +215,15 @@ async def fetch_cloud_projects(settings: dict) -> List[dict]:
 
 async def fetch_onprem_projects(settings: dict) -> List[dict]:
     """Fetch projects from Jira On-Premise"""
+    onprem_url = settings['onprem_url']
     try:
         auth_str = f"{settings['onprem_username']}:{settings['onprem_password']}"
         auth_bytes = base64.b64encode(auth_str.encode()).decode()
         
-        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
+        # Increased timeout to 60 seconds for slow connections
+        async with httpx.AsyncClient(timeout=60.0, verify=False) as client:
             response = await client.get(
-                f"{settings['onprem_url']}/rest/api/2/project",
+                f"{onprem_url}/rest/api/2/project",
                 headers={
                     "Authorization": f"Basic {auth_bytes}",
                     "Accept": "application/json"
@@ -239,12 +241,16 @@ async def fetch_onprem_projects(settings: dict) -> List[dict]:
     except httpx.ConnectError as e:
         error_msg = str(e)
         if "Connection refused" in error_msg:
-            raise Exception("Bağlantı reddedildi - Sunucu portu kapalı veya firewall engelliyor")
+            raise Exception(f"Bağlantı reddedildi ({onprem_url}) - Sunucu portu kapalı veya firewall engelliyor")
         elif "getaddrinfo" in error_msg or "Name or service not known" in error_msg:
-            raise Exception("DNS çözümlenemedi - URL adresi hatalı veya sunucu bulunamıyor")
-        raise Exception(f"Bağlantı hatası: {error_msg}")
-    except httpx.TimeoutException:
-        raise Exception("Zaman aşımı - Sunucu 30 saniye içinde yanıt vermedi")
+            raise Exception(f"DNS çözümlenemedi ({onprem_url}) - URL adresi hatalı veya sunucu bulunamıyor")
+        raise Exception(f"Bağlantı hatası ({onprem_url}): {error_msg}")
+    except httpx.ConnectTimeout:
+        raise Exception(f"Bağlantı zaman aşımı ({onprem_url}) - Sunucuya TCP bağlantısı kurulamadı. SEBEP: Sunucu internetten erişilebilir değil, firewall engelliyor veya VPN gerekiyor olabilir.")
+    except httpx.ReadTimeout:
+        raise Exception(f"Okuma zaman aşımı ({onprem_url}) - Sunucu bağlantıyı kabul etti ama yanıt vermedi (60 sn).")
+    except httpx.TimeoutException as e:
+        raise Exception(f"Zaman aşımı ({onprem_url}) - Sunucuya 60 saniye içinde ulaşılamadı. Bu uygulama cloud'da çalışıyor, Jira sunucunuz sadece internal ağda ise erişilemez. Tip: {type(e).__name__}")
     except httpx.HTTPStatusError as e:
         raise Exception(f"HTTP Hatası {e.response.status_code}: {e.response.text[:200]}")
     except Exception as e:
