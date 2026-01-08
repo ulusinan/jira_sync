@@ -376,18 +376,25 @@ async def sync_issues_for_user(user_id: str):
             jql = " AND ".join(jql_parts) + " ORDER BY created DESC"
             logger.info(f"Sync JQL for {mapping['cloud_project_key']}: {jql}")
             
-            # Fetch issues from Cloud project
+            # Fetch issues from Cloud project using POST method (required for newer Jira Cloud)
             async with httpx.AsyncClient(timeout=60.0) as http_client:
-                response = await http_client.get(
-                    f"{settings['cloud_url']}/rest/api/3/search",
-                    params={"jql": jql, "maxResults": 50, "fields": "summary,description,priority,assignee,issuetype"},
+                response = await http_client.post(
+                    f"{settings['cloud_url']}/rest/api/2/search",
+                    json={
+                        "jql": jql,
+                        "maxResults": 50,
+                        "fields": ["summary", "description", "priority", "assignee", "issuetype"]
+                    },
                     headers={
                         "Authorization": f"Basic {cloud_auth}",
-                        "Accept": "application/json"
+                        "Accept": "application/json",
+                        "Content-Type": "application/json"
                     }
                 )
                 response.raise_for_status()
                 data = response.json()
+                
+                logger.info(f"Found {data.get('total', 0)} issues for project {mapping['cloud_project_key']}")
                 
                 for issue in data.get('issues', []):
                     # Check if already synced
