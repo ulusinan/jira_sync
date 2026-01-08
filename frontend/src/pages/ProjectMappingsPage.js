@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   getCloudProjects, 
   getOnPremProjects, 
@@ -21,8 +23,12 @@ import {
   Trash2, 
   Loader2,
   FolderSync,
-  AlertCircle
+  AlertCircle,
+  CalendarIcon,
+  Info
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 export default function ProjectMappingsPage() {
   const [cloudProjects, setCloudProjects] = useState([]);
@@ -32,6 +38,7 @@ export default function ProjectMappingsPage() {
   const [saving, setSaving] = useState(false);
   const [selectedCloud, setSelectedCloud] = useState('');
   const [selectedOnPrem, setSelectedOnPrem] = useState('');
+  const [startDate, setStartDate] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -83,11 +90,13 @@ export default function ProjectMappingsPage() {
         cloud_project_name: cloudProject.name,
         onprem_project_key: onpremProject.key,
         onprem_project_name: onpremProject.name,
+        start_date: startDate ? startDate.toISOString() : null,
         is_active: true
       });
       setMappings([...mappings, response.data]);
       setSelectedCloud('');
       setSelectedOnPrem('');
+      setStartDate(null);
       toast.success('Proje eşleştirmesi eklendi');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Eşleştirme eklenemedi');
@@ -115,6 +124,15 @@ export default function ProjectMappingsPage() {
       toast.success('Durum güncellendi');
     } catch (error) {
       toast.error('Durum güncellenemedi');
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      return format(new Date(dateStr), 'dd MMM yyyy', { locale: tr });
+    } catch {
+      return dateStr;
     }
   };
 
@@ -159,6 +177,21 @@ export default function ProjectMappingsPage() {
         </Card>
       ) : (
         <>
+          {/* Info Box */}
+          <Card className="border-blue-500/30 bg-blue-500/5">
+            <CardContent className="flex items-start gap-4 p-4">
+              <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium text-blue-500 mb-1">Senkronizasyon Kuralları</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Sadece <span className="text-foreground font-medium">Issue Type eşleştirmesi yapılan</span> issue'lar senkronize olur</li>
+                  <li>Başlangıç tarihi belirlerseniz, sadece o tarihten sonra oluşturulan issue'lar senkronize olur</li>
+                  <li>Proje eşleştirmesi yaptıktan sonra Issue Type Eşleştirme sayfasından issue type'ları eşleştirmeyi unutmayın</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Add New Mapping */}
           <Card className="border-border">
             <CardHeader>
@@ -168,64 +201,99 @@ export default function ProjectMappingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
-                {/* Cloud Project */}
-                <div className="flex-1 w-full space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Cloud className="w-4 h-4 text-blue-500" />
-                    Cloud Proje
-                  </Label>
-                  <Select value={selectedCloud} onValueChange={setSelectedCloud}>
-                    <SelectTrigger data-testid="cloud-project-select">
-                      <SelectValue placeholder="Proje seçin..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableCloudProjects.map(project => (
-                        <SelectItem key={project.key} value={project.key}>
-                          {project.key} - {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
+                  {/* Cloud Project */}
+                  <div className="flex-1 w-full space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Cloud className="w-4 h-4 text-blue-500" />
+                      Cloud Proje
+                    </Label>
+                    <Select value={selectedCloud} onValueChange={setSelectedCloud}>
+                      <SelectTrigger data-testid="cloud-project-select">
+                        <SelectValue placeholder="Proje seçin..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCloudProjects.map(project => (
+                          <SelectItem key={project.key} value={project.key}>
+                            {project.key} - {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <ArrowRight className="w-6 h-6 text-muted-foreground hidden md:block shrink-0 mb-2" />
+
+                  {/* On-Prem Project */}
+                  <div className="flex-1 w-full space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Server className="w-4 h-4 text-orange-500" />
+                      On-Premise Proje
+                    </Label>
+                    <Select value={selectedOnPrem} onValueChange={setSelectedOnPrem}>
+                      <SelectTrigger data-testid="onprem-project-select">
+                        <SelectValue placeholder="Proje seçin..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {onpremProjects.map(project => (
+                          <SelectItem key={project.key} value={project.key}>
+                            {project.key} - {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <ArrowRight className="w-6 h-6 text-muted-foreground hidden md:block shrink-0 mb-2" />
+                {/* Start Date */}
+                <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
+                  <div className="flex-1 w-full space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                      Başlangıç Tarihi (Opsiyonel)
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="start-date-picker"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, 'dd MMMM yyyy', { locale: tr }) : 'Tarih seçin...'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={startDate}
+                          onSelect={setStartDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground">
+                      Bu tarihten sonra oluşturulan issue'lar senkronize olacak. Boş bırakırsanız tüm issue'lar senkronize olur.
+                    </p>
+                  </div>
 
-                {/* On-Prem Project */}
-                <div className="flex-1 w-full space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Server className="w-4 h-4 text-orange-500" />
-                    On-Premise Proje
-                  </Label>
-                  <Select value={selectedOnPrem} onValueChange={setSelectedOnPrem}>
-                    <SelectTrigger data-testid="onprem-project-select">
-                      <SelectValue placeholder="Proje seçin..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {onpremProjects.map(project => (
-                        <SelectItem key={project.key} value={project.key}>
-                          {project.key} - {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Button 
+                    onClick={handleAddMapping} 
+                    disabled={saving || !selectedCloud || !selectedOnPrem}
+                    className="btn-press shrink-0"
+                    data-testid="add-mapping-btn"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Ekle
+                      </>
+                    )}
+                  </Button>
                 </div>
-
-                <Button 
-                  onClick={handleAddMapping} 
-                  disabled={saving || !selectedCloud || !selectedOnPrem}
-                  className="btn-press shrink-0"
-                  data-testid="add-mapping-btn"
-                >
-                  {saving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Ekle
-                    </>
-                  )}
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -248,56 +316,68 @@ export default function ProjectMappingsPage() {
               ) : (
                 <div className="divide-y divide-border">
                   {mappings.map((mapping) => (
-                    <div key={mapping.id} className="mapping-card m-0 rounded-none border-0 border-b last:border-b-0" data-testid={`mapping-${mapping.id}`}>
-                      {/* Cloud */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                          <Cloud className="w-5 h-5 text-blue-500" />
+                    <div key={mapping.id} className="p-4 hover:bg-muted/30 transition-colors" data-testid={`mapping-${mapping.id}`}>
+                      <div className="flex items-center justify-between gap-4">
+                        {/* Cloud */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                            <Cloud className="w-5 h-5 text-blue-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{mapping.cloud_project_key}</p>
+                            <p className="text-xs text-muted-foreground truncate">{mapping.cloud_project_name}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{mapping.cloud_project_key}</p>
-                          <p className="text-xs text-muted-foreground truncate">{mapping.cloud_project_name}</p>
+
+                        {/* Arrow */}
+                        <div className="mapping-arrow">
+                          <ArrowRight className="w-5 h-5" />
+                        </div>
+
+                        {/* On-Prem */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                            <Server className="w-5 h-5 text-orange-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{mapping.onprem_project_key}</p>
+                            <p className="text-xs text-muted-foreground truncate">{mapping.onprem_project_name}</p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={mapping.is_active}
+                              onCheckedChange={() => handleToggleMapping(mapping.id)}
+                              data-testid={`toggle-mapping-${mapping.id}`}
+                            />
+                            <span className={`text-xs ${mapping.is_active ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                              {mapping.is_active ? 'Aktif' : 'Pasif'}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteMapping(mapping.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                            data-testid={`delete-mapping-${mapping.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-
-                      {/* Arrow */}
-                      <div className="mapping-arrow">
-                        <ArrowRight className="w-5 h-5" />
-                      </div>
-
-                      {/* On-Prem */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
-                          <Server className="w-5 h-5 text-orange-500" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{mapping.onprem_project_key}</p>
-                          <p className="text-xs text-muted-foreground truncate">{mapping.onprem_project_name}</p>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-4 shrink-0">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={mapping.is_active}
-                            onCheckedChange={() => handleToggleMapping(mapping.id)}
-                            data-testid={`toggle-mapping-${mapping.id}`}
-                          />
-                          <span className={`text-xs ${mapping.is_active ? 'text-emerald-500' : 'text-muted-foreground'}`}>
-                            {mapping.is_active ? 'Aktif' : 'Pasif'}
+                      
+                      {/* Date Info */}
+                      {mapping.start_date && (
+                        <div className="mt-3 ml-13 flex items-center gap-2 text-xs text-muted-foreground">
+                          <CalendarIcon className="w-3 h-3" />
+                          <span>
+                            <span className="font-medium text-foreground">{formatDate(mapping.start_date)}</span> tarihinden sonraki issue'lar senkronize olacak
                           </span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteMapping(mapping.id)}
-                          className="text-muted-foreground hover:text-destructive"
-                          data-testid={`delete-mapping-${mapping.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
