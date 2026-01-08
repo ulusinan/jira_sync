@@ -666,15 +666,23 @@ async def test_jira_connection(user=Depends(get_current_user)):
 async def get_cloud_projects(user=Depends(get_current_user)):
     settings = await db.jira_settings.find_one({"user_id": user['id']}, {"_id": 0})
     if not settings:
-        raise HTTPException(status_code=404, detail="Jira settings not found")
-    return await fetch_cloud_projects(settings)
+        raise HTTPException(status_code=404, detail="Jira ayarları bulunamadı. Önce Ayarlar sayfasından bağlantı bilgilerinizi girin.")
+    try:
+        return await fetch_cloud_projects(settings)
+    except Exception as e:
+        logger.error(f"Cloud projects fetch error: {e}")
+        raise HTTPException(status_code=500, detail=f"Cloud projeler alınamadı: {str(e)}")
 
 @api_router.get("/projects/onprem", response_model=List[OnPremProjectResponse])
 async def get_onprem_projects(user=Depends(get_current_user)):
     settings = await db.jira_settings.find_one({"user_id": user['id']}, {"_id": 0})
     if not settings:
-        raise HTTPException(status_code=404, detail="Jira settings not found")
-    return await fetch_onprem_projects(settings)
+        raise HTTPException(status_code=404, detail="Jira ayarları bulunamadı. Önce Ayarlar sayfasından bağlantı bilgilerinizi girin.")
+    try:
+        return await fetch_onprem_projects(settings)
+    except Exception as e:
+        logger.error(f"On-prem projects fetch error: {e}")
+        raise HTTPException(status_code=500, detail=f"On-Premise projeler alınamadı: {str(e)}")
 
 @api_router.get("/projects/mappings", response_model=List[ProjectMappingResponse])
 async def get_project_mappings(user=Depends(get_current_user)):
