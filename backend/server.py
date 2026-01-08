@@ -695,6 +695,12 @@ async def get_project_mappings(user=Depends(get_current_user)):
         {"user_id": user['id']}, 
         {"_id": 0}
     ).to_list(100)
+    
+    # Ensure start_date field exists for backwards compatibility
+    for mapping in mappings:
+        if 'start_date' not in mapping:
+            mapping['start_date'] = None
+    
     return mappings
 
 @api_router.post("/projects/mappings", response_model=ProjectMappingResponse)
