@@ -351,6 +351,15 @@ async def sync_issues_for_user(user_id: str):
     
     for mapping in mappings:
         try:
+            # Get issue type mappings for this specific project
+            issue_type_mappings = {}
+            type_mappings = await db.issue_type_mappings.find(
+                {"user_id": user_id, "project_mapping_id": mapping['id']}, 
+                {"_id": 0}
+            ).to_list(100)
+            for tm in type_mappings:
+                issue_type_mappings[tm['cloud_issue_type']] = tm['onprem_issue_type']
+            
             # Fetch recent issues from Cloud project
             async with httpx.AsyncClient(timeout=60.0) as http_client:
                 # Get issues created in last sync interval
