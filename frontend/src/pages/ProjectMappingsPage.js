@@ -59,10 +59,13 @@ export default function ProjectMappingsPage() {
       setMappings(mappingsRes.data);
     } catch (error) {
       console.error('Project data fetch error:', error);
+      const errorDetail = error.response?.data?.detail || error.message;
       if (error.response?.status === 404) {
         setError('Önce Ayarlar sayfasından Jira bağlantı bilgilerinizi girin.');
+      } else if (error.response?.status === 500) {
+        setError(`Jira'dan proje listesi alınamadı: ${errorDetail}`);
       } else {
-        setError('Jira bağlantısı kurulamadı. Ayarları kontrol edin.');
+        setError(`Bağlantı hatası: ${errorDetail}`);
       }
     } finally {
       setLoading(false);
