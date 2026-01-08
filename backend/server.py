@@ -376,10 +376,10 @@ async def sync_issues_for_user(user_id: str):
             jql = " AND ".join(jql_parts) + " ORDER BY created DESC"
             logger.info(f"Sync JQL for {mapping['cloud_project_key']}: {jql}")
             
-            # Fetch issues from Cloud project using POST method (required for newer Jira Cloud)
+            # Fetch issues from Cloud project using NEW Jira Cloud API endpoint
             async with httpx.AsyncClient(timeout=60.0) as http_client:
                 response = await http_client.post(
-                    f"{settings['cloud_url']}/rest/api/2/search",
+                    f"{settings['cloud_url']}/rest/api/3/search/jql",
                     json={
                         "jql": jql,
                         "maxResults": 50,
