@@ -451,17 +451,17 @@ async def sync_issues_for_user(user_id: str):
                             cloud_impact = issue['fields'].get('customfield_10401')
                             cloud_urgency = issue['fields'].get('customfield_10400')
                             
-                            # Set Impact - use cloud value or default
-                            if cloud_impact:
-                                new_issue['fields']['customfield_10401'] = cloud_impact
-                            else:
-                                new_issue['fields']['customfield_10401'] = {"value": "Medium"}
-                            
-                            # Set Urgency - use cloud value or default
-                            if cloud_urgency:
+                            # Set Urgency - use cloud value or default "Medium"
+                            if cloud_urgency and isinstance(cloud_urgency, dict):
                                 new_issue['fields']['customfield_10400'] = cloud_urgency
                             else:
                                 new_issue['fields']['customfield_10400'] = {"value": "Medium"}
+                            
+                            # Set Impact - use cloud value or default "No Critical Affect"
+                            if cloud_impact and isinstance(cloud_impact, dict):
+                                new_issue['fields']['customfield_10401'] = cloud_impact
+                            else:
+                                new_issue['fields']['customfield_10401'] = {"value": "No Critical Affect"}
                         
                         # Create issue in On-Premise
                         async with httpx.AsyncClient(timeout=30.0, verify=False) as onprem_client:
