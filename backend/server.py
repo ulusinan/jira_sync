@@ -353,10 +353,31 @@ async def sync_issues_for_user(user_id: str):
             for tm in type_mappings:
                 issue_type_mappings[tm['cloud_issue_type']] = tm['onprem_issue_type']
             
-            # Fetch recent issues from Cloud project
+            # Skip if no issue type mappings defined for this project
+            if not issue_type_mappings:
+                logger.info(f"No issue type mappings for project {mapping['cloud_project_key']}, skipping")
+                continue
+            
+            # Build JQL query with filters
+            jql_parts = [f"project = {mapping['cloud_project_key']}"]
+            
+            # Add date filter if start_date is set
+            if mapping.get('start_date'):
+                # Convert ISO date to Jira date format (yyyy-MM-dd)
+                start_date = mapping['start_date'][:10]  # Get just the date part
+                jql_parts.append(f"created >= '{start_date}'")
+            
+            # Add issue type filter - only sync mapped issue types
+            mapped_types = list(issue_type_mappings.keys())
+            if mapped_types:
+                types_str = ", ".join([f'"{t}"' for t in mapped_types])
+                jql_parts.append(f"issuetype IN ({types_str})")
+            
+            jql = " AND ".join(jql_parts) + " ORDER BY created DESC"
+            logger.info(f"Sync JQL for {mapping['cloud_project_key']}: {jql}")
+            
+            # Fetch issues from Cloud project
             async with httpx.AsyncClient(timeout=60.0) as http_client:
-                # Get issues created in last sync interval
-                jql = f"project = {mapping['cloud_project_key']} ORDER BY created DESC"
                 response = await http_client.get(
                     f"{settings['cloud_url']}/rest/api/3/search",
                     params={"jql": jql, "maxResults": 50, "fields": "summary,description,priority,assignee,issuetype"},
