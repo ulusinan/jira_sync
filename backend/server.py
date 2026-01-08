@@ -103,11 +103,13 @@ class ProjectMappingResponse(BaseModel):
     created_at: str
 
 class IssueTypeMappingCreate(BaseModel):
+    project_mapping_id: str  # Which project mapping this belongs to
     cloud_issue_type: str
     onprem_issue_type: str
 
 class IssueTypeMappingResponse(BaseModel):
     id: str
+    project_mapping_id: str
     cloud_issue_type: str
     onprem_issue_type: str
     created_at: str
@@ -330,10 +332,10 @@ async def sync_issues_for_user(user_id: str):
         logger.info(f"No active project mappings for user {user_id}")
         return
     
-    # Get issue type mappings
+    # Get issue type mappings for this specific project
     issue_type_mappings = {}
     type_mappings = await db.issue_type_mappings.find(
-        {"user_id": user_id}, 
+        {"user_id": user_id, "project_mapping_id": mapping['id']}, 
         {"_id": 0}
     ).to_list(100)
     for tm in type_mappings:
@@ -728,27 +730,40 @@ async def get_onprem_issue_types(user=Depends(get_current_user)):
     return await fetch_onprem_issue_types(settings)
 
 @api_router.get("/issuetypes/mappings", response_model=List[IssueTypeMappingResponse])
-async def get_issue_type_mappings(user=Depends(get_current_user)):
+async def get_issue_type_mappings(project_mapping_id: Optional[str] = None, user=Depends(get_current_user)):
+    query = {"user_id": user['id']}
+    if project_mapping_id:
+        query["project_mapping_id"] = project_mapping_id
     mappings = await db.issue_type_mappings.find(
-        {"user_id": user['id']}, 
+        query, 
         {"_id": 0}
     ).to_list(100)
     return mappings
 
 @api_router.post("/issuetypes/mappings", response_model=IssueTypeMappingResponse)
 async def create_issue_type_mapping(data: IssueTypeMappingCreate, user=Depends(get_current_user)):
-    # Check if mapping already exists
+    # Verify project mapping exists
+    project_mapping = await db.project_mappings.find_one({
+        "id": data.project_mapping_id,
+        "user_id": user['id']
+    })
+    if not project_mapping:
+        raise HTTPException(status_code=404, detail="Project mapping not found")
+    
+    # Check if mapping already exists for this project
     existing = await db.issue_type_mappings.find_one({
         "user_id": user['id'],
+        "project_mapping_id": data.project_mapping_id,
         "cloud_issue_type": data.cloud_issue_type
     })
     if existing:
-        raise HTTPException(status_code=400, detail="Mapping for this issue type already exists")
+        raise HTTPException(status_code=400, detail="Bu proje için bu issue type eşleştirmesi zaten mevcut")
     
     mapping_id = str(uuid.uuid4())
     mapping = {
         "id": mapping_id,
         "user_id": user['id'],
+        "project_mapping_id": data.project_mapping_id,
         "cloud_issue_type": data.cloud_issue_type,
         "onprem_issue_type": data.onprem_issue_type,
         "created_at": datetime.now(timezone.utc).isoformat()
