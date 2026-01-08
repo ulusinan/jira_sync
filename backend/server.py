@@ -445,6 +445,24 @@ async def sync_issues_for_user(user_id: str):
                         if issue['fields'].get('priority'):
                             new_issue['fields']['priority'] = {"name": issue['fields']['priority']['name']}
                         
+                        # Add required custom fields for Incident type (Impact & Urgency)
+                        if onprem_type.lower() == 'incident':
+                            # Try to get from cloud issue, otherwise use defaults
+                            cloud_impact = issue['fields'].get('customfield_10401')
+                            cloud_urgency = issue['fields'].get('customfield_10400')
+                            
+                            # Set Impact - use cloud value or default
+                            if cloud_impact:
+                                new_issue['fields']['customfield_10401'] = cloud_impact
+                            else:
+                                new_issue['fields']['customfield_10401'] = {"value": "Medium"}
+                            
+                            # Set Urgency - use cloud value or default
+                            if cloud_urgency:
+                                new_issue['fields']['customfield_10400'] = cloud_urgency
+                            else:
+                                new_issue['fields']['customfield_10400'] = {"value": "Medium"}
+                        
                         # Create issue in On-Premise
                         async with httpx.AsyncClient(timeout=30.0, verify=False) as onprem_client:
                             create_response = await onprem_client.post(
