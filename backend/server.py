@@ -455,7 +455,12 @@ async def sync_issues_for_user(user_id: str):
                                     "Content-Type": "application/json"
                                 }
                             )
-                            create_response.raise_for_status()
+                            
+                            if create_response.status_code >= 400:
+                                error_detail = create_response.text
+                                logger.error(f"On-Premise create error for {issue['key']}: {error_detail}")
+                                raise Exception(f"On-Premise hata ({create_response.status_code}): {error_detail[:500]}")
+                            
                             created = create_response.json()
                             
                             # Update log with success
