@@ -332,15 +332,6 @@ async def sync_issues_for_user(user_id: str):
         logger.info(f"No active project mappings for user {user_id}")
         return
     
-    # Get issue type mappings for this specific project
-    issue_type_mappings = {}
-    type_mappings = await db.issue_type_mappings.find(
-        {"user_id": user_id, "project_mapping_id": mapping['id']}, 
-        {"_id": 0}
-    ).to_list(100)
-    for tm in type_mappings:
-        issue_type_mappings[tm['cloud_issue_type']] = tm['onprem_issue_type']
-    
     cloud_auth = base64.b64encode(
         f"{settings['cloud_email']}:{settings['cloud_api_token']}".encode()
     ).decode()
