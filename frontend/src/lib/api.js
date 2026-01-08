@@ -31,7 +31,8 @@ export const toggleProjectMapping = (id) => api.patch(`/projects/mappings/${id}/
 // Issue Types
 export const getCloudIssueTypes = () => api.get('/issuetypes/cloud');
 export const getOnPremIssueTypes = () => api.get('/issuetypes/onprem');
-export const getIssueTypeMappings = () => api.get('/issuetypes/mappings');
+export const getIssueTypeMappings = (projectMappingId) => 
+  api.get('/issuetypes/mappings', { params: projectMappingId ? { project_mapping_id: projectMappingId } : {} });
 export const createIssueTypeMapping = (data) => api.post('/issuetypes/mappings', data);
 export const deleteIssueTypeMapping = (id) => api.delete(`/issuetypes/mappings/${id}`);
 
