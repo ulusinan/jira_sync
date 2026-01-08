@@ -427,15 +427,59 @@ async def sync_issues_for_user(user_id: str):
                         onprem_type = issue_type_mappings.get(cloud_type, cloud_type)
                         
                         # Prepare issue for On-Premise
+                        # Parse Atlassian Document Format (ADF) to plain text
+                        def parse_adf_to_text(adf_content):
+                            """Convert Atlassian Document Format to plain text"""
+                            if not adf_content:
+                                return ""
+                            if isinstance(adf_content, str):
+                                return adf_content
+                            if not isinstance(adf_content, dict):
+                                return str(adf_content)
+                            
+                            text_parts = []
+                            
+                            def extract_text(node):
+                                if isinstance(node, dict):
+                                    # Get text from text nodes
+                                    if node.get('type') == 'text':
+                                        text_parts.append(node.get('text', ''))
+                                    # Handle paragraph breaks
+                                    elif node.get('type') == 'paragraph':
+                                        if text_parts and text_parts[-1] != '\n':
+                                            text_parts.append('\n')
+                                    # Handle hard breaks
+                                    elif node.get('type') == 'hardBreak':
+                                        text_parts.append('\n')
+                                    
+                                    # Recursively process content
+                                    for child in node.get('content', []):
+                                        extract_text(child)
+                                        
+                                    # Add newline after paragraphs
+                                    if node.get('type') == 'paragraph':
+                                        text_parts.append('\n')
+                                        
+                                elif isinstance(node, list):
+                                    for item in node:
+                                        extract_text(item)
+                            
+                            extract_text(adf_content)
+                            return ''.join(text_parts).strip()
+                        
                         description = issue['fields'].get('description', '')
                         if isinstance(description, dict):
                             # Handle Atlassian Document Format
-                            description = str(description)
+                            description = parse_adf_to_text(description)
+                        
+                        # Create summary with Cloud issue key prefix
+                        cloud_summary = issue['fields'].get('summary', 'Synced from Cloud')
+                        combined_summary = f"{issue['key']} {cloud_summary}"
                         
                         new_issue = {
                             "fields": {
                                 "project": {"key": mapping['onprem_project_key']},
-                                "summary": issue['fields'].get('summary', 'Synced from Cloud'),
+                                "summary": combined_summary,
                                 "description": description or "Synced from Jira Cloud",
                                 "issuetype": {"name": onprem_type}
                             }
