@@ -91,6 +91,7 @@ class ProjectMappingCreate(BaseModel):
     cloud_project_name: str
     onprem_project_key: str
     onprem_project_name: str
+    start_date: Optional[str] = None  # ISO format date - only sync issues created after this date
     is_active: bool = True
 
 class ProjectMappingResponse(BaseModel):
@@ -99,6 +100,7 @@ class ProjectMappingResponse(BaseModel):
     cloud_project_name: str
     onprem_project_key: str
     onprem_project_name: str
+    start_date: Optional[str]
     is_active: bool
     created_at: str
 
@@ -679,6 +681,7 @@ async def create_project_mapping(data: ProjectMappingCreate, user=Depends(get_cu
         "cloud_project_name": data.cloud_project_name,
         "onprem_project_key": data.onprem_project_key,
         "onprem_project_name": data.onprem_project_name,
+        "start_date": data.start_date,
         "is_active": data.is_active,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
