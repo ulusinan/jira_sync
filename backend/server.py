@@ -518,6 +518,11 @@ app = FastAPI(lifespan=lifespan)
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Root endpoint
+@api_router.get("/")
+async def root():
+    return {"message": "JiraSync Pro API"}
+
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register", response_model=TokenResponse)
