@@ -376,6 +376,51 @@ export default function SettingsPage() {
           Ayarları Kaydet
         </Button>
       </div>
+
+      {/* Admin Section */}
+      {!user?.role && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-amber-600">
+              <Shield className="w-5 h-5" />
+              Admin Yetkisi
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Sistemde henüz admin bulunmuyorsa, kendinizi ilk admin olarak atayabilirsiniz.
+              Admin yetkileri ile kullanıcıları yönetebilir, rol atayabilir ve şifre sıfırlayabilirsiniz.
+            </p>
+            <Button 
+              onClick={async () => {
+                setMakingAdmin(true);
+                try {
+                  await makeFirstAdmin();
+                  toast.success('Admin yetkisi verildi. Yeniden giriş yapılıyor...');
+                  setTimeout(() => {
+                    logout();
+                  }, 1500);
+                } catch (error) {
+                  toast.error(error.response?.data?.detail || 'Admin ataması başarısız');
+                } finally {
+                  setMakingAdmin(false);
+                }
+              }}
+              disabled={makingAdmin}
+              variant="outline"
+              className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+              data-testid="make-admin-btn"
+            >
+              {makingAdmin ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Shield className="w-4 h-4 mr-2" />
+              )}
+              İlk Admin Ol
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
