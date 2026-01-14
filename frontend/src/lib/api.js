@@ -50,4 +50,11 @@ export const retryAllFailedLogs = () => api.post('/logs/retry-all');
 export const getDashboardStats = () => api.get('/dashboard/stats');
 export const getRecentLogs = () => api.get('/dashboard/recent-logs');
 
+// Admin User Management
+export const getAllUsers = () => api.get('/admin/users');
+export const createUserByAdmin = (data) => api.post('/admin/users', data);
+export const updateUserRole = (userId, role) => api.patch(`/admin/users/${userId}/role`, { role });
+export const resetUserPassword = (userId, newPassword) => api.post(`/admin/users/${userId}/reset-password`, { new_password: newPassword });
+export const deleteUser = (userId) => api.delete(`/admin/users/${userId}`);
+
 export default api;
