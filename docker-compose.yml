@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    container_name: jirasync-mongodb
+    restart: always
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+
+  backend:
+    build: ./backend
+    container_name: jirasync-backend
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - DB_NAME=jirasync
+      - CORS_ORIGINS=*
+      - JWT_SECRET=your-secret-key-change-this-in-production
+    depends_on:
+      - mongodb
+
+  frontend:
+    build: 
+      context: ./frontend
+      args:
+        - REACT_APP_BACKEND_URL=http://localhost:8001
+    container_name: jirasync-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:8001
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
