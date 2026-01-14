@@ -1016,6 +1016,22 @@ async def delete_user(user_id: str, admin=Depends(get_admin_user)):
     
     return {"message": "Kullanıcı ve ilişkili tüm verileri silindi"}
 
+@api_router.post("/admin/make-first-admin")
+async def make_first_admin(user=Depends(get_current_user)):
+    """Make the current user admin if no admin exists yet"""
+    # Check if any admin exists
+    existing_admin = await db.users.find_one({"role": "admin"})
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="Zaten bir admin mevcut. İlk admin ataması yapılamaz.")
+    
+    # Make current user admin
+    await db.users.update_one(
+        {"id": user['id']},
+        {"$set": {"role": "admin"}}
+    )
+    
+    return {"message": "Admin yetkisi verildi. Lütfen yeniden giriş yapın."}
+
 # ==================== JIRA SETTINGS ROUTES ====================
 
 @api_router.post("/settings/jira", response_model=JiraSettingsResponse)
