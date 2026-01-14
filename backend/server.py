@@ -568,6 +568,194 @@ async def run_scheduled_sync():
             logger.error(f"Scheduled sync error for user {user['user_id']}: {e}")
     logger.info("Scheduled sync completed")
 
+async def retry_single_issue(user_id: str, log_id: str):
+    """Retry syncing a single failed issue"""
+    # Get the failed log
+    log = await db.transfer_logs.find_one({"id": log_id, "user_id": user_id}, {"_id": 0})
+    if not log:
+        raise Exception("Log bulunamadı")
+    
+    if log['status'] != 'failed':
+        raise Exception("Sadece hatalı kayıtlar tekrar denenebilir")
+    
+    # Get settings
+    settings = await db.jira_settings.find_one({"user_id": user_id}, {"_id": 0})
+    if not settings:
+        raise Exception("Jira ayarları bulunamadı")
+    
+    # Get the project mapping for this issue
+    cloud_issue_key = log['cloud_issue_key']
+    project_key = cloud_issue_key.split('-')[0]
+    
+    mapping = await db.project_mappings.find_one({
+        "user_id": user_id,
+        "cloud_project_key": project_key,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not mapping:
+        raise Exception(f"Proje eşleştirmesi bulunamadı: {project_key}")
+    
+    # Ensure start_date field exists
+    if 'start_date' not in mapping:
+        mapping['start_date'] = None
+    
+    # Get issue type mappings for this project
+    issue_type_mappings = {}
+    type_mappings = await db.issue_type_mappings.find(
+        {"user_id": user_id, "project_mapping_id": mapping['id']}, 
+        {"_id": 0}
+    ).to_list(100)
+    for tm in type_mappings:
+        issue_type_mappings[tm['cloud_issue_type']] = tm['onprem_issue_type']
+    
+    if not issue_type_mappings:
+        raise Exception("Issue type eşleştirmesi bulunamadı")
+    
+    # Prepare auth
+    cloud_auth = base64.b64encode(
+        f"{settings['cloud_email']}:{settings['cloud_api_token']}".encode()
+    ).decode()
+    
+    onprem_auth = base64.b64encode(
+        f"{settings['onprem_username']}:{settings['onprem_password']}".encode()
+    ).decode()
+    
+    # Fetch the specific issue from Cloud
+    async with httpx.AsyncClient(timeout=60.0) as http_client:
+        response = await http_client.get(
+            f"{settings['cloud_url']}/rest/api/3/issue/{cloud_issue_key}",
+            params={"fields": "summary,description,priority,assignee,issuetype"},
+            headers={
+                "Authorization": f"Basic {cloud_auth}",
+                "Accept": "application/json"
+            }
+        )
+        response.raise_for_status()
+        issue = response.json()
+    
+    # Get issue type
+    cloud_type = issue['fields'].get('issuetype', {}).get('name', 'Task')
+    onprem_type = issue_type_mappings.get(cloud_type)
+    
+    if not onprem_type:
+        raise Exception(f"Issue type eşleştirmesi bulunamadı: {cloud_type}")
+    
+    # Parse description
+    def parse_adf_to_text(adf_content):
+        if not adf_content:
+            return ""
+        if isinstance(adf_content, str):
+            return adf_content
+        if not isinstance(adf_content, dict):
+            return str(adf_content)
+        
+        text_parts = []
+        
+        def extract_text(node):
+            if isinstance(node, dict):
+                if node.get('type') == 'text':
+                    text_parts.append(node.get('text', ''))
+                elif node.get('type') == 'paragraph':
+                    if text_parts and text_parts[-1] != '\n':
+                        text_parts.append('\n')
+                elif node.get('type') == 'hardBreak':
+                    text_parts.append('\n')
+                
+                for child in node.get('content', []):
+                    extract_text(child)
+                    
+                if node.get('type') == 'paragraph':
+                    text_parts.append('\n')
+                    
+            elif isinstance(node, list):
+                for item in node:
+                    extract_text(item)
+        
+        extract_text(adf_content)
+        return ''.join(text_parts).strip()
+    
+    description = issue['fields'].get('description', '')
+    if isinstance(description, dict):
+        description = parse_adf_to_text(description)
+    
+    # Create summary with Cloud issue key prefix
+    cloud_summary = issue['fields'].get('summary', 'Synced from Cloud')
+    combined_summary = f"{issue['key']} {cloud_summary}"
+    
+    new_issue = {
+        "fields": {
+            "project": {"key": mapping['onprem_project_key']},
+            "summary": combined_summary,
+            "description": description or "Synced from Jira Cloud",
+            "issuetype": {"name": onprem_type}
+        }
+    }
+    
+    # Add priority if available
+    if issue['fields'].get('priority'):
+        new_issue['fields']['priority'] = {"name": issue['fields']['priority']['name']}
+    
+    # Add required custom fields for Incident type
+    if onprem_type.lower() == 'incident':
+        cloud_impact = issue['fields'].get('customfield_10401')
+        cloud_urgency = issue['fields'].get('customfield_10400')
+        
+        if cloud_urgency and isinstance(cloud_urgency, dict):
+            new_issue['fields']['customfield_10400'] = cloud_urgency
+        else:
+            new_issue['fields']['customfield_10400'] = {"value": "Medium"}
+        
+        if cloud_impact and isinstance(cloud_impact, dict):
+            new_issue['fields']['customfield_10401'] = cloud_impact
+        else:
+            new_issue['fields']['customfield_10401'] = {"value": "No Critical Affect"}
+    
+    # Update log to pending
+    await db.transfer_logs.update_one(
+        {"id": log_id},
+        {"$set": {"status": "pending", "error_message": None}}
+    )
+    
+    # Create issue in On-Premise
+    async with httpx.AsyncClient(timeout=30.0, verify=False) as onprem_client:
+        create_response = await onprem_client.post(
+            f"{settings['onprem_url']}/rest/api/2/issue",
+            json=new_issue,
+            headers={
+                "Authorization": f"Basic {onprem_auth}",
+                "Content-Type": "application/json"
+            }
+        )
+        
+        if create_response.status_code >= 400:
+            error_detail = create_response.text
+            logger.error(f"Retry On-Premise create error for {issue['key']}: {error_detail}")
+            await db.transfer_logs.update_one(
+                {"id": log_id},
+                {"$set": {
+                    "status": "failed",
+                    "error_message": f"On-Premise hata ({create_response.status_code}): {error_detail[:500]}",
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            raise Exception(f"On-Premise hata ({create_response.status_code}): {error_detail[:200]}")
+        
+        created = create_response.json()
+        
+        # Update log with success
+        await db.transfer_logs.update_one(
+            {"id": log_id},
+            {"$set": {
+                "onprem_issue_key": created.get('key'),
+                "status": "success",
+                "completed_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logger.info(f"Retry synced {issue['key']} -> {created.get('key')}")
+        
+        return created.get('key')
+
 # ==================== LIFESPAN ====================
 
 @asynccontextmanager
