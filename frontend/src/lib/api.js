@@ -56,5 +56,6 @@ export const createUserByAdmin = (data) => api.post('/admin/users', data);
 export const updateUserRole = (userId, role) => api.patch(`/admin/users/${userId}/role`, { role });
 export const resetUserPassword = (userId, newPassword) => api.post(`/admin/users/${userId}/reset-password`, { new_password: newPassword });
 export const deleteUser = (userId) => api.delete(`/admin/users/${userId}`);
+export const makeFirstAdmin = () => api.post('/admin/make-first-admin');
 
 export default api;
