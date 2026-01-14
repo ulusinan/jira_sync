@@ -43,6 +43,8 @@ export const getSyncStatus = () => api.get('/sync/status');
 // Logs
 export const getTransferLogs = (params) => api.get('/logs', { params });
 export const getLogStats = () => api.get('/logs/stats');
+export const retryTransferLog = (logId) => api.post(`/logs/${logId}/retry`);
+export const retryAllFailedLogs = () => api.post('/logs/retry-all');
 
 // Dashboard
 export const getDashboardStats = () => api.get('/dashboard/stats');
