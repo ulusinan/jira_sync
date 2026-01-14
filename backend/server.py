@@ -193,7 +193,11 @@ async def fetch_cloud_projects(settings: dict) -> List[dict]:
         logger.info(f"[DEBUG] cloud_email: {settings.get('cloud_email', 'NOT SET')}")
         logger.info(f"[DEBUG] cloud_api_token length: {len(settings.get('cloud_api_token', ''))}")
         
-        auth_str = f"{settings['cloud_email']}:{settings['cloud_api_token']}"
+        # Trim credentials just in case
+        cloud_email = settings['cloud_email'].strip()
+        cloud_api_token = settings['cloud_api_token'].strip()
+        
+        auth_str = f"{cloud_email}:{cloud_api_token}"
         auth_bytes = base64.b64encode(auth_str.encode()).decode()
         
         request_url = f"{settings['cloud_url']}/rest/api/3/project"
@@ -210,11 +214,17 @@ async def fetch_cloud_projects(settings: dict) -> List[dict]:
             
             # DEBUG: Log response details
             logger.info(f"[DEBUG] Response status: {response.status_code}")
-            logger.info(f"[DEBUG] Response headers: {dict(response.headers)}")
+            
+            # Check for authentication failure via header (Jira returns 200 OK with empty array when auth fails)
+            login_reason = response.headers.get('x-seraph-loginreason', '')
+            logger.info(f"[DEBUG] x-seraph-loginreason: {login_reason}")
+            
+            if 'AUTHENTICATED_FAILED' in login_reason or 'AUTHENTICATION_DENIED' in login_reason:
+                raise Exception("Authentication hatası - E-posta veya API Token geçersiz. Lütfen Jira Cloud ayarlarınızı kontrol edin. API Token'ı https://id.atlassian.com/manage-profile/security/api-tokens adresinden yeniden oluşturabilirsiniz.")
             
             # Log raw response body (first 1000 chars to avoid huge logs)
             raw_body = response.text
-            logger.info(f"[DEBUG] Raw response body (first 1000 chars): {raw_body[:1000]}")
+            logger.info(f"[DEBUG] Raw response body (first 500 chars): {raw_body[:500]}")
             
             if response.status_code == 401:
                 raise Exception("401 Unauthorized - E-posta veya API Token hatalı")
@@ -225,11 +235,12 @@ async def fetch_cloud_projects(settings: dict) -> List[dict]:
             response.raise_for_status()
             projects = response.json()
             
+            # Check if projects is empty - might indicate auth issue
+            if isinstance(projects, list) and len(projects) == 0:
+                logger.warning("[DEBUG] Projects list is empty - this might indicate an authentication issue")
+            
             # DEBUG: Log parsed projects
             logger.info(f"[DEBUG] Parsed projects count: {len(projects)}")
-            logger.info(f"[DEBUG] Parsed projects type: {type(projects)}")
-            if projects:
-                logger.info(f"[DEBUG] First project sample: {projects[0] if isinstance(projects, list) else 'NOT A LIST'}")
             
             result = [{"key": p["key"], "name": p["name"]} for p in projects]
             logger.info(f"[DEBUG] Returning {len(result)} projects")
