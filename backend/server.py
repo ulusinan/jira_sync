@@ -1165,6 +1165,39 @@ async def get_log_stats(user=Depends(get_current_user)):
     
     return stats
 
+@api_router.post("/logs/{log_id}/retry")
+async def retry_transfer_log(log_id: str, user=Depends(get_current_user)):
+    """Retry a failed transfer"""
+    try:
+        onprem_key = await retry_single_issue(user['id'], log_id)
+        return {"message": "Başarıyla aktarıldı", "onprem_issue_key": onprem_key}
+    except Exception as e:
+        logger.error(f"Retry failed for log {log_id}: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/logs/retry-all")
+async def retry_all_failed_logs(background_tasks: BackgroundTasks, user=Depends(get_current_user)):
+    """Retry all failed transfers"""
+    failed_logs = await db.transfer_logs.find(
+        {"user_id": user['id'], "status": "failed"},
+        {"_id": 0, "id": 1}
+    ).to_list(100)
+    
+    async def retry_all():
+        success_count = 0
+        fail_count = 0
+        for log in failed_logs:
+            try:
+                await retry_single_issue(user['id'], log['id'])
+                success_count += 1
+            except Exception as e:
+                fail_count += 1
+                logger.error(f"Retry all - failed for {log['id']}: {e}")
+        logger.info(f"Retry all completed: {success_count} success, {fail_count} failed")
+    
+    background_tasks.add_task(retry_all)
+    return {"message": f"{len(failed_logs)} hatalı kayıt tekrar deneniyor"}
+
 # ==================== DASHBOARD ROUTES ====================
 
 @api_router.get("/dashboard/stats")
