@@ -21,9 +21,11 @@ import {
 } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [makingAdmin, setMakingAdmin] = useState(false);
   const [showCloudToken, setShowCloudToken] = useState(false);
   const [showOnPremPassword, setShowOnPremPassword] = useState(false);
   const [testResults, setTestResults] = useState(null);
