@@ -864,6 +864,7 @@ async def register(data: UserCreate):
         "id": user_id,
         "email": data.email,
         "name": data.name,
+        "role": None,  # No role by default, admin assigns manually
         "password_hash": hash_password(data.password),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -876,6 +877,7 @@ async def register(data: UserCreate):
             id=user_id,
             email=data.email,
             name=data.name,
+            role=None,
             created_at=user['created_at']
         )
     )
@@ -893,6 +895,7 @@ async def login(data: UserLogin):
             id=user['id'],
             email=user['email'],
             name=user['name'],
+            role=user.get('role'),
             created_at=user['created_at']
         )
     )
@@ -903,8 +906,115 @@ async def get_me(user=Depends(get_current_user)):
         id=user['id'],
         email=user['email'],
         name=user['name'],
+        role=user.get('role'),
         created_at=user['created_at']
     )
+
+# ==================== ADMIN USER MANAGEMENT ROUTES ====================
+
+@api_router.get("/admin/users", response_model=List[UserAdminResponse])
+async def get_all_users(admin=Depends(get_admin_user)):
+    """Get all users (admin only)"""
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    
+    result = []
+    for user in users:
+        # Check if user has jira settings
+        has_settings = await db.jira_settings.find_one({"user_id": user['id']}) is not None
+        result.append(UserAdminResponse(
+            id=user['id'],
+            email=user['email'],
+            name=user['name'],
+            role=user.get('role'),
+            created_at=user['created_at'],
+            has_jira_settings=has_settings
+        ))
+    
+    return result
+
+@api_router.post("/admin/users", response_model=UserAdminResponse)
+async def create_user_by_admin(data: UserCreateByAdmin, admin=Depends(get_admin_user)):
+    """Create a new user (admin only)"""
+    existing = await db.users.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu email adresi zaten kayıtlı")
+    
+    user_id = str(uuid.uuid4())
+    user = {
+        "id": user_id,
+        "email": data.email,
+        "name": data.name,
+        "role": data.role,
+        "password_hash": hash_password(data.password),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+    
+    return UserAdminResponse(
+        id=user_id,
+        email=data.email,
+        name=data.name,
+        role=data.role,
+        created_at=user['created_at'],
+        has_jira_settings=False
+    )
+
+@api_router.patch("/admin/users/{user_id}/role")
+async def update_user_role(user_id: str, data: UserRoleUpdate, admin=Depends(get_admin_user)):
+    """Update user role (admin only)"""
+    # Prevent admin from removing their own admin role
+    if admin['id'] == user_id and data.role != 'admin':
+        raise HTTPException(status_code=400, detail="Kendi admin yetkinizi kaldıramazsınız")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": data.role}}
+    )
+    
+    return {"message": "Rol güncellendi", "role": data.role}
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def reset_user_password(user_id: str, data: PasswordReset, admin=Depends(get_admin_user)):
+    """Reset user password (admin only)"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Şifre en az 6 karakter olmalı")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"password_hash": hash_password(data.new_password)}}
+    )
+    
+    return {"message": "Şifre sıfırlandı"}
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, admin=Depends(get_admin_user)):
+    """Delete a user (admin only)"""
+    # Prevent admin from deleting themselves
+    if admin['id'] == user_id:
+        raise HTTPException(status_code=400, detail="Kendinizi silemezsiniz")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    # Delete user's related data
+    await db.jira_settings.delete_many({"user_id": user_id})
+    await db.project_mappings.delete_many({"user_id": user_id})
+    await db.issue_type_mappings.delete_many({"user_id": user_id})
+    await db.transfer_logs.delete_many({"user_id": user_id})
+    
+    # Delete user
+    await db.users.delete_one({"id": user_id})
+    
+    return {"message": "Kullanıcı ve ilişkili tüm verileri silindi"}
 
 # ==================== JIRA SETTINGS ROUTES ====================
 
