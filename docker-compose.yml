@@ -28,13 +28,13 @@ services:
     build: 
       context: ./frontend
       args:
-        - REACT_APP_BACKEND_URL=http://localhost:8001
+        - REACT_APP_BACKEND_URL=http://10.16.241.25:8001
     container_name: jirasync-frontend
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_BACKEND_URL=http://localhost:8001
+      - REACT_APP_BACKEND_URL=http://10.16.241.25:8001
     depends_on:
       - backend
 
