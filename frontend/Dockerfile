@@ -3,23 +3,23 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json yarn.lock ./
-
-# Install dependencies
-RUN yarn install
+COPY package.json ./
 
 # Set build argument for backend URL
 ARG REACT_APP_BACKEND_URL=http://localhost:8001
 ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
 
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
 # Copy application
 COPY . .
 
 # Build the application
-RUN yarn build
+RUN npm run build
 
 # Install serve to run the build
-RUN yarn global add serve
+RUN npm install -g serve
 
 # Expose port
 EXPOSE 3000
