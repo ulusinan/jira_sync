@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getTransferLogs, getLogStats } from '@/lib/api';
+import { getTransferLogs, getLogStats, retryTransferLog, retryAllFailedLogs } from '@/lib/api';
+import { toast } from 'sonner';
 import { 
   ScrollText, 
   Loader2,
@@ -12,7 +12,8 @@ import {
   Clock,
   RefreshCw,
   ArrowRight,
-  Filter
+  Filter,
+  RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -22,6 +23,8 @@ export default function TransferLogsPage() {
   const [stats, setStats] = useState({ pending: 0, success: 0, failed: 0 });
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [retryingId, setRetryingId] = useState(null);
+  const [retryingAll, setRetryingAll] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -44,6 +47,34 @@ export default function TransferLogsPage() {
       console.error('Logs fetch error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRetry = async (logId) => {
+    setRetryingId(logId);
+    try {
+      const response = await retryTransferLog(logId);
+      toast.success(`Başarıyla aktarıldı: ${response.data.onprem_issue_key}`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Tekrar deneme başarısız');
+      fetchData();
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  const handleRetryAll = async () => {
+    setRetryingAll(true);
+    try {
+      const response = await retryAllFailedLogs();
+      toast.success(response.data.message);
+      // Wait a bit then refresh
+      setTimeout(fetchData, 3000);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Toplu tekrar deneme başarısız');
+    } finally {
+      setRetryingAll(false);
     }
   };
 
@@ -88,15 +119,33 @@ export default function TransferLogsPage() {
             Tüm issue transferlerinin detaylı kayıtları
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={fetchData}
-          className="shrink-0"
-          data-testid="refresh-logs-btn"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Yenile
-        </Button>
+        <div className="flex gap-2">
+          {stats.failed > 0 && (
+            <Button 
+              variant="outline"
+              onClick={handleRetryAll}
+              disabled={retryingAll}
+              className="shrink-0"
+              data-testid="retry-all-btn"
+            >
+              {retryingAll ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RotateCcw className="w-4 h-4 mr-2" />
+              )}
+              Tümünü Tekrar Dene ({stats.failed})
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            onClick={fetchData}
+            className="shrink-0"
+            data-testid="refresh-logs-btn"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Yenile
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -198,7 +247,7 @@ export default function TransferLogsPage() {
                     <th>On-Prem Issue</th>
                     <th>Özet</th>
                     <th>Tarih</th>
-                    <th>Hata</th>
+                    <th>Hata / İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,10 +283,26 @@ export default function TransferLogsPage() {
                         </span>
                       </td>
                       <td>
-                        {log.error_message ? (
-                          <p className="max-w-xs truncate text-sm text-destructive" title={log.error_message}>
-                            {log.error_message}
-                          </p>
+                        {log.status === 'failed' ? (
+                          <div className="flex items-center gap-2">
+                            <p className="max-w-xs truncate text-sm text-destructive" title={log.error_message}>
+                              {log.error_message?.substring(0, 50)}...
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRetry(log.id)}
+                              disabled={retryingId === log.id}
+                              data-testid={`retry-${log.id}`}
+                            >
+                              {retryingId === log.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <RotateCcw className="w-3 h-3" />
+                              )}
+                              <span className="ml-1">Tekrar</span>
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
