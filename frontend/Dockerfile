@@ -5,8 +5,9 @@ WORKDIR /app
 # Copy package files
 COPY package.json ./
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
+# Install dependencies and fix ajv issue
+RUN npm install --legacy-peer-deps && \
+    npm install ajv@8.12.0 ajv-keywords@5.1.0 --legacy-peer-deps
 
 # Copy application
 COPY . .
