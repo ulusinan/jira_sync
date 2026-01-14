@@ -187,17 +187,35 @@ async def get_jira_settings(user_id: str):
 async def fetch_cloud_projects(settings: dict) -> List[dict]:
     """Fetch projects from Jira Cloud"""
     try:
+        # DEBUG: Log settings being used (mask sensitive data)
+        logger.info(f"[DEBUG] fetch_cloud_projects called")
+        logger.info(f"[DEBUG] cloud_url: {settings.get('cloud_url', 'NOT SET')}")
+        logger.info(f"[DEBUG] cloud_email: {settings.get('cloud_email', 'NOT SET')}")
+        logger.info(f"[DEBUG] cloud_api_token length: {len(settings.get('cloud_api_token', ''))}")
+        
         auth_str = f"{settings['cloud_email']}:{settings['cloud_api_token']}"
         auth_bytes = base64.b64encode(auth_str.encode()).decode()
         
+        request_url = f"{settings['cloud_url']}/rest/api/3/project"
+        logger.info(f"[DEBUG] Request URL: {request_url}")
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
-                f"{settings['cloud_url']}/rest/api/3/project",
+                request_url,
                 headers={
                     "Authorization": f"Basic {auth_bytes}",
                     "Accept": "application/json"
                 }
             )
+            
+            # DEBUG: Log response details
+            logger.info(f"[DEBUG] Response status: {response.status_code}")
+            logger.info(f"[DEBUG] Response headers: {dict(response.headers)}")
+            
+            # Log raw response body (first 1000 chars to avoid huge logs)
+            raw_body = response.text
+            logger.info(f"[DEBUG] Raw response body (first 1000 chars): {raw_body[:1000]}")
+            
             if response.status_code == 401:
                 raise Exception("401 Unauthorized - E-posta veya API Token hatalı")
             if response.status_code == 403:
@@ -206,7 +224,16 @@ async def fetch_cloud_projects(settings: dict) -> List[dict]:
                 raise Exception("404 Not Found - URL adresi hatalı veya API endpoint bulunamadı")
             response.raise_for_status()
             projects = response.json()
-            return [{"key": p["key"], "name": p["name"]} for p in projects]
+            
+            # DEBUG: Log parsed projects
+            logger.info(f"[DEBUG] Parsed projects count: {len(projects)}")
+            logger.info(f"[DEBUG] Parsed projects type: {type(projects)}")
+            if projects:
+                logger.info(f"[DEBUG] First project sample: {projects[0] if isinstance(projects, list) else 'NOT A LIST'}")
+            
+            result = [{"key": p["key"], "name": p["name"]} for p in projects]
+            logger.info(f"[DEBUG] Returning {len(result)} projects")
+            return result
     except httpx.ConnectError as e:
         raise Exception(f"Bağlantı hatası - Sunucuya erişilemiyor: {str(e)}")
     except httpx.TimeoutException:
