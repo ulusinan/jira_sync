@@ -60,7 +60,28 @@ class UserResponse(BaseModel):
     id: str
     email: str
     name: str
+    role: Optional[str] = None
     created_at: str
+
+class UserAdminResponse(BaseModel):
+    id: str
+    email: str
+    name: str
+    role: Optional[str] = None
+    created_at: str
+    has_jira_settings: bool = False
+
+class UserRoleUpdate(BaseModel):
+    role: Optional[str] = None  # 'admin' or None
+
+class UserCreateByAdmin(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    role: Optional[str] = None
+
+class PasswordReset(BaseModel):
+    new_password: str
 
 class TokenResponse(BaseModel):
     access_token: str
