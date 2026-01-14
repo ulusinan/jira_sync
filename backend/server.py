@@ -1344,12 +1344,12 @@ async def get_sync_status(user=Depends(get_current_user)):
 @api_router.get("/logs", response_model=List[TransferLogResponse])
 async def get_transfer_logs(
     limit: int = 50,
-    status: Optional[str] = None,
+    log_status: Optional[str] = None,
     user=Depends(get_current_user)
 ):
     query = {"user_id": user['id']}
-    if status:
-        query['status'] = status
+    if log_status:
+        query['status'] = log_status
     
     logs = await db.transfer_logs.find(
         query, 
