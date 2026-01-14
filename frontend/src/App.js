@@ -9,6 +9,7 @@ import ProjectMappingsPage from "@/pages/ProjectMappingsPage";
 import IssueTypeMappingsPage from "@/pages/IssueTypeMappingsPage";
 import TransferLogsPage from "@/pages/TransferLogsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import UserManagementPage from "@/pages/UserManagementPage";
 import Layout from "@/components/Layout";
 
 const ProtectedRoute = ({ children }) => {
@@ -72,6 +73,7 @@ function App() {
             <Route path="project-mappings" element={<ProjectMappingsPage />} />
             <Route path="issue-type-mappings" element={<IssueTypeMappingsPage />} />
             <Route path="logs" element={<TransferLogsPage />} />
+            <Route path="users" element={<UserManagementPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
