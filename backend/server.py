@@ -873,15 +873,26 @@ async def get_me(user=Depends(get_current_user)):
 @api_router.post("/settings/jira", response_model=JiraSettingsResponse)
 async def create_or_update_jira_settings(data: JiraSettingsCreate, user=Depends(get_current_user)):
     settings_id = str(uuid.uuid4())
+    
+    # Clean and trim all input values to remove hidden characters
+    cloud_api_token = data.cloud_api_token.strip()
+    cloud_email = data.cloud_email.strip()
+    onprem_password = data.onprem_password.strip()
+    onprem_username = data.onprem_username.strip()
+    
+    # Log token info for debugging
+    logger.info(f"[DEBUG] Saving settings - cloud_api_token length after trim: {len(cloud_api_token)}")
+    logger.info(f"[DEBUG] Saving settings - cloud_email: {cloud_email}")
+    
     settings = {
         "id": settings_id,
         "user_id": user['id'],
-        "cloud_url": data.cloud_url.rstrip('/'),
-        "cloud_email": data.cloud_email,
-        "cloud_api_token": data.cloud_api_token,
-        "onprem_url": data.onprem_url.rstrip('/'),
-        "onprem_username": data.onprem_username,
-        "onprem_password": data.onprem_password,
+        "cloud_url": data.cloud_url.strip().rstrip('/'),
+        "cloud_email": cloud_email,
+        "cloud_api_token": cloud_api_token,
+        "onprem_url": data.onprem_url.strip().rstrip('/'),
+        "onprem_username": onprem_username,
+        "onprem_password": onprem_password,
         "sync_interval_minutes": data.sync_interval_minutes,
         "is_connected": False,
         "last_sync": None,
