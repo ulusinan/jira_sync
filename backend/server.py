@@ -215,7 +215,7 @@ async def fetch_cloud_projects(settings: dict) -> List[dict]:
     """Fetch projects from Jira Cloud"""
     try:
         # DEBUG: Log settings being used (mask sensitive data)
-        logger.info(f"[DEBUG] fetch_cloud_projects called")
+        logger.info("[DEBUG] fetch_cloud_projects called")
         logger.info(f"[DEBUG] cloud_url: {settings.get('cloud_url', 'NOT SET')}")
         logger.info(f"[DEBUG] cloud_email: {settings.get('cloud_email', 'NOT SET')}")
         logger.info(f"[DEBUG] cloud_api_token length: {len(settings.get('cloud_api_token', ''))}")
