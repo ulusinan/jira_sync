@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   LayoutDashboard, 
   FolderSync, 
@@ -11,7 +12,9 @@ import {
   Cloud,
   Server,
   Menu,
-  X
+  X,
+  Users,
+  Shield
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -20,6 +23,7 @@ const navItems = [
   { path: '/project-mappings', label: 'Proje Eşleştirme', icon: FolderSync },
   { path: '/issue-type-mappings', label: 'Issue Type Eşleştirme', icon: Tags },
   { path: '/logs', label: 'Transfer Logları', icon: ScrollText },
+  { path: '/users', label: 'Kullanıcı Yönetimi', icon: Users, adminOnly: true },
   { path: '/settings', label: 'Ayarlar', icon: Settings },
 ];
 
@@ -27,6 +31,11 @@ export const Layout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Filter nav items based on user role
+  const filteredNavItems = navItems.filter(item => 
+    !item.adminOnly || user?.role === 'admin'
+  );
 
   return (
     <div className="app-layout">
@@ -59,7 +68,7 @@ export const Layout = () => {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -69,6 +78,11 @@ export const Layout = () => {
             >
               <item.icon size={20} />
               {item.label}
+              {item.adminOnly && (
+                <Badge variant="outline" className="ml-auto text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
+                  Admin
+                </Badge>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -76,11 +90,18 @@ export const Layout = () => {
         {/* User section */}
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium text-primary">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              user?.role === 'admin' ? 'bg-amber-500/20 text-amber-600' : 'bg-primary/20 text-primary'
+            }`}>
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium truncate">{user?.name}</p>
+                {user?.role === 'admin' && (
+                  <Shield className="w-3 h-3 text-amber-500" />
+                )}
+              </div>
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
