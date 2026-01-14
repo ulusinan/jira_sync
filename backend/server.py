@@ -958,11 +958,19 @@ async def test_jira_connection(user=Depends(get_current_user)):
 
 @api_router.get("/projects/cloud", response_model=List[CloudProjectResponse])
 async def get_cloud_projects(user=Depends(get_current_user)):
+    logger.info(f"[DEBUG] /api/projects/cloud called for user: {user['id']}")
     settings = await db.jira_settings.find_one({"user_id": user['id']}, {"_id": 0})
+    logger.info(f"[DEBUG] Settings found: {settings is not None}")
+    if settings:
+        logger.info(f"[DEBUG] Settings cloud_url: {settings.get('cloud_url', 'NOT SET')}")
+        logger.info(f"[DEBUG] Settings cloud_email: {settings.get('cloud_email', 'NOT SET')}")
+        logger.info(f"[DEBUG] Settings cloud_api_token exists: {bool(settings.get('cloud_api_token'))}")
     if not settings:
         raise HTTPException(status_code=404, detail="Jira ayarları bulunamadı. Önce Ayarlar sayfasından bağlantı bilgilerinizi girin.")
     try:
-        return await fetch_cloud_projects(settings)
+        projects = await fetch_cloud_projects(settings)
+        logger.info(f"[DEBUG] /api/projects/cloud returning {len(projects)} projects")
+        return projects
     except Exception as e:
         logger.error(f"Cloud projects fetch error: {e}")
         raise HTTPException(status_code=500, detail=f"Cloud projeler alınamadı: {str(e)}")
