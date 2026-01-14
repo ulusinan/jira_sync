@@ -199,6 +199,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+async def get_admin_user(user=Depends(get_current_user)):
+    """Dependency that ensures user is an admin"""
+    if user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Admin yetkisi gerekli")
+    return user
+
 # ==================== JIRA API HELPERS ====================
 
 async def get_jira_settings(user_id: str):
