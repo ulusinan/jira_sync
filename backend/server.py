@@ -550,10 +550,6 @@ async def sync_issues_for_user(user_id: str):
                             }
                         }
                         
-                        # Add priority if available
-                        if issue['fields'].get('priority'):
-                            new_issue['fields']['priority'] = {"name": issue['fields']['priority']['name']}
-                        
                         # Add required custom fields for Incident type (Impact & Urgency)
                         if onprem_type.lower() == 'incident':
                             # Try to get from cloud issue, otherwise use defaults
