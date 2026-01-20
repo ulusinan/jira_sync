@@ -753,10 +753,6 @@ async def retry_single_issue(user_id: str, log_id: str):
         }
     }
     
-    # Add priority if available
-    if issue['fields'].get('priority'):
-        new_issue['fields']['priority'] = {"name": issue['fields']['priority']['name']}
-    
     # Add required custom fields for Incident type
     if onprem_type.lower() == 'incident':
         cloud_impact = issue['fields'].get('customfield_10401')
